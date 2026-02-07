@@ -21,3 +21,7 @@ Desktop.ini
 
 # AI assistant rules (local only)
 CursorRules/
+
+package-lock.json
+start_server.bat
+stop_server.bat
