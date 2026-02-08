@@ -69,6 +69,7 @@
 2. **Progressive complexity** — Power features are available but never forced.
 3. **Performance** — Smooth 60 fps editing and gameplay on mid-range hardware.
 4. **Privacy** — No telemetry, no forced sign-up. The user's work stays on their machine.
+5. **Open source** — The entire project is open source (MIT License). Anyone can use it, modify it, fork it, or contribute to it — for any purpose, without restriction.
 
 ## What This Is NOT
 

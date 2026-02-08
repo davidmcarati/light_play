@@ -1,6 +1,7 @@
 import { addNewLObject, getEditorState, undo, redo } from "../core/editor_state.js";
 import { saveProject } from "../core/project.js";
 import { showNotification } from "./notification.js";
+import { clearSavedLayout } from "./panel_system.js";
 
 function createMenuBar(container) {
     const bar = document.createElement("div");
@@ -138,7 +139,9 @@ function handleCreateObject() {
 }
 
 function handleResetLayout() {
-    showNotification("Layout reset.", "success");
+    clearSavedLayout();
+    showNotification("Layout reset. Reloading...", "success");
+    setTimeout(() => window.location.reload(), 500);
 }
 
 export { createMenuBar, closeAllMenus };

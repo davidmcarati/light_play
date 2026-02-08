@@ -1,6 +1,7 @@
 import { createModal, closeModal } from "./modal.js";
 import { showNotification } from "./notification.js";
-import { createNewProject, loadExistingProject, isFileSystemAccessSupported } from "../core/project.js";
+import { createNewProject, loadExistingProject, isFileSystemAccessSupported, loadProjectFromHandle } from "../core/project.js";
+import { getRecentProjects, removeRecentProject } from "../core/recent_projects.js";
 
 function renderWelcomeScreen(app, onProjectLoaded) {
     app.innerHTML = "";
@@ -90,25 +91,36 @@ function handleNewProject(onProjectLoaded) {
     }, 100);
 }
 
-function handleLoadProject(onProjectLoaded) {
-    const bodyHTML = `
+async function handleLoadProject(onProjectLoaded) {
+    const recentProjects = await getRecentProjects();
+
+    let bodyHTML = `
         <p>All projects in Light Play are stored <strong>locally on your device</strong>. 
         Nothing is uploaded to any server or cloud.</p>
-        <p>Select the folder that contains your <strong>project.lplay</strong> file to open it.</p>
     `;
 
-    createModal("Open Existing Project", bodyHTML, [
+    if (recentProjects.length > 0) {
+        bodyHTML += `
+            <div class="recent-projects-section">
+                <div class="recent-projects-title">Recent Projects</div>
+                <div class="recent-projects-list" id="recent-projects-list"></div>
+            </div>
+        `;
+    }
+
+    bodyHTML += `<p style="margin-top: 16px;">Or select a folder that contains your <strong>project.lplay</strong> file.</p>`;
+
+    const overlay = createModal("Open Project", bodyHTML, [
         {
             label: "Cancel",
             className: "btn-secondary",
-            onClick: (overlay) => closeModal(overlay)
+            onClick: (ov) => closeModal(ov)
         },
         {
-            label: "Choose Project Folder",
+            label: "Browse Folder...",
             className: "btn-primary",
-            onClick: async (overlay) => {
-                closeModal(overlay);
-
+            onClick: async (ov) => {
+                closeModal(ov);
                 try {
                     const result = await loadExistingProject();
                     if (result) {
@@ -121,6 +133,71 @@ function handleLoadProject(onProjectLoaded) {
             }
         }
     ]);
+
+    if (recentProjects.length > 0) {
+        const listEl = document.getElementById("recent-projects-list");
+        if (listEl) {
+            recentProjects.forEach(project => {
+                const item = document.createElement("div");
+                item.className = "recent-project-item";
+
+                const nameSpan = document.createElement("span");
+                nameSpan.className = "recent-project-name";
+                nameSpan.textContent = project.name;
+                item.appendChild(nameSpan);
+
+                const timeSpan = document.createElement("span");
+                timeSpan.className = "recent-project-time";
+                timeSpan.textContent = formatTimeAgo(project.lastOpened);
+                item.appendChild(timeSpan);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.className = "recent-project-remove";
+                removeBtn.textContent = "\u00D7";
+                removeBtn.addEventListener("click", async (e) => {
+                    e.stopPropagation();
+                    await removeRecentProject(project.id);
+                    item.remove();
+                });
+                item.appendChild(removeBtn);
+
+                item.addEventListener("click", async () => {
+                    closeModal(overlay);
+                    try {
+                        const handle = project.directoryHandle;
+                        let permission = await handle.queryPermission({ mode: "readwrite" });
+                        if (permission !== "granted") {
+                            permission = await handle.requestPermission({ mode: "readwrite" });
+                        }
+                        if (permission !== "granted") {
+                            showNotification("Permission denied for project folder.", "error");
+                            return;
+                        }
+
+                        const result = await loadProjectFromHandle(handle);
+                        showNotification(`Project "${result.projectData.name}" loaded!`, "success");
+                        onProjectLoaded(result);
+                    } catch (err) {
+                        showNotification("Failed to open project: " + err.message, "error");
+                    }
+                });
+
+                listEl.appendChild(item);
+            });
+        }
+    }
+}
+
+function formatTimeAgo(timestamp) {
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return minutes + "m ago";
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours + "h ago";
+    const days = Math.floor(hours / 24);
+    if (days < 30) return days + "d ago";
+    return new Date(timestamp).toLocaleDateString();
 }
 
 export { renderWelcomeScreen };

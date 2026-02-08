@@ -5,7 +5,15 @@ import {
     printSummary
 } from "./test_runner.js";
 
-import { createPanelLayout, activateTab } from "../ui/panel_system.js";
+import {
+    createPanelLayout,
+    activateTab,
+    getPanelRegistry,
+    registerTabType,
+    loadSavedLayout,
+    clearSavedLayout,
+    saveLayout
+} from "../ui/panel_system.js";
 
 function cleanup() {
     document.querySelectorAll(".panel-layout").forEach(el => el.remove());
@@ -20,7 +28,7 @@ function makeContainer() {
 }
 
 async function runPanelSystemTests() {
-    console.log("\n▶ Panel System Tests\n");
+    console.log("\n\u25B6 Panel System Tests\n");
 
     await runTest("createPanelLayout creates a panel-layout element", () => {
         const container = makeContainer();
@@ -177,6 +185,136 @@ async function runPanelSystemTests() {
         });
         const panels = container.querySelectorAll(".panel");
         assertEqual(panels.length, 3);
+        cleanup();
+        container.remove();
+    });
+
+    await runTest("panels are registered in the panel registry", () => {
+        const container = makeContainer();
+        createPanelLayout(container, {
+            type: "split",
+            direction: "horizontal",
+            children: [
+                { type: "panel", id: "a", tabs: [{ label: "Tab A", render: () => {} }] },
+                { type: "panel", id: "b", tabs: [{ label: "Tab B", render: () => {} }] }
+            ]
+        });
+        const registry = getPanelRegistry();
+        assertEqual(registry.size, 2);
+        cleanup();
+        container.remove();
+    });
+
+    await runTest("tabs are marked as draggable", () => {
+        const container = makeContainer();
+        createPanelLayout(container, {
+            type: "panel",
+            id: "main",
+            tabs: [{ label: "Draggable", render: () => {} }]
+        });
+        const tab = container.querySelector(".panel-tab");
+        assertEqual(tab.draggable, true);
+        cleanup();
+        container.remove();
+    });
+
+    await runTest("panels have drop overlay elements", () => {
+        const container = makeContainer();
+        createPanelLayout(container, {
+            type: "panel",
+            id: "main",
+            tabs: [{ label: "Test", render: () => {} }]
+        });
+        const overlay = container.querySelector(".panel-drop-overlay");
+        assert(overlay, "should have drop overlay");
+        const zones = overlay.querySelectorAll(".drop-zone");
+        assertEqual(zones.length, 5);
+        cleanup();
+        container.remove();
+    });
+
+    await runTest("cleanup function is called when switching tabs", () => {
+        const container = makeContainer();
+        let cleanedUp = false;
+        const panelState = createPanelLayout(container, {
+            type: "panel",
+            id: "main",
+            tabs: [
+                { label: "A", render: () => {}, cleanup: () => { cleanedUp = true; } },
+                { label: "B", render: () => {} }
+            ]
+        });
+        activateTab(panelState, 1);
+        assert(cleanedUp, "cleanup should have been called for tab A");
+        cleanup();
+        container.remove();
+    });
+
+    await runTest("saveLayout stores layout to localStorage", () => {
+        clearSavedLayout();
+        const container = makeContainer();
+        registerTabType("TestTab", () => {}, null);
+        createPanelLayout(container, {
+            type: "panel",
+            tabs: [{ label: "TestTab", render: () => {} }]
+        });
+        saveLayout();
+        const stored = localStorage.getItem("lightplay_editor_layout");
+        assert(stored, "should have saved layout to localStorage");
+        const parsed = JSON.parse(stored);
+        assertEqual(parsed.type, "panel");
+        assert(parsed.tabs.includes("TestTab"), "should include TestTab label");
+        cleanup();
+        container.remove();
+        clearSavedLayout();
+    });
+
+    await runTest("loadSavedLayout returns null when nothing saved", () => {
+        clearSavedLayout();
+        const result = loadSavedLayout();
+        assertEqual(result, null);
+    });
+
+    await runTest("loadSavedLayout resolves saved config with registered tabs", () => {
+        clearSavedLayout();
+        let renderCalled = false;
+        registerTabType("LoadTest", () => { renderCalled = true; }, null);
+
+        localStorage.setItem("lightplay_editor_layout", JSON.stringify({
+            type: "panel",
+            tabs: ["LoadTest"],
+            activeTabIndex: 0
+        }));
+
+        const loaded = loadSavedLayout();
+        assert(loaded, "should return a config");
+        assertEqual(loaded.type, "panel");
+        assertEqual(loaded.tabs.length, 1);
+        assertEqual(loaded.tabs[0].label, "LoadTest");
+        assert(typeof loaded.tabs[0].render === "function", "should resolve render function");
+        clearSavedLayout();
+    });
+
+    await runTest("clearSavedLayout removes layout from localStorage", () => {
+        localStorage.setItem("lightplay_editor_layout", "test");
+        clearSavedLayout();
+        assertEqual(localStorage.getItem("lightplay_editor_layout"), null);
+    });
+
+    await runTest("activeTabIndex is restored from config", () => {
+        const container = makeContainer();
+        let activatedTab = "";
+        createPanelLayout(container, {
+            type: "panel",
+            tabs: [
+                { label: "X", render: () => { activatedTab = "X"; } },
+                { label: "Y", render: () => { activatedTab = "Y"; } }
+            ],
+            activeTabIndex: 1
+        });
+        assertEqual(activatedTab, "Y");
+        const tabs = container.querySelectorAll(".panel-tab");
+        assert(tabs[1].classList.contains("active"), "second tab should be active");
         cleanup();
         container.remove();
     });

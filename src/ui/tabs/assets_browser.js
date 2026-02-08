@@ -6,16 +6,77 @@ const VIDEO_EXTENSIONS = [".mp4", ".webm", ".avi", ".mov"];
 const DATA_EXTENSIONS = [".json", ".xml", ".csv", ".txt"];
 
 let _container = null;
+let _pollInterval = null;
+let _renderToken = 0;
+let _lastFileList = "";
+const POLL_INTERVAL_MS = 3000;
 
 function renderAssetsBrowser(container) {
     _container = container;
     _container.innerHTML = "";
+
+    stopPolling();
+    _renderToken++;
+    const token = _renderToken;
+
     loadAssets();
+
+    _pollInterval = setInterval(() => {
+        if (token !== _renderToken) {
+            stopPolling();
+            return;
+        }
+        refreshIfChanged();
+    }, POLL_INTERVAL_MS);
+}
+
+function cleanupAssetsBrowser() {
+    stopPolling();
+}
+
+function stopPolling() {
+    if (_pollInterval) {
+        clearInterval(_pollInterval);
+        _pollInterval = null;
+    }
+}
+
+async function refreshIfChanged() {
+    if (!_container) return;
+
+    const hasOurContent = _container.querySelector(".assets-content") ||
+                          _container.querySelector(".assets-empty");
+    if (!hasOurContent && _container.children.length > 0) {
+        stopPolling();
+        return;
+    }
+
+    const state = getEditorState();
+    if (!state || !state.project || !state.project.directoryHandle) return;
+
+    try {
+        const dirHandle = state.project.directoryHandle;
+        const assetsHandle = await dirHandle.getDirectoryHandle("Assets", { create: false });
+
+        const names = [];
+        for await (const entry of assetsHandle.values()) {
+            names.push(entry.kind + ":" + entry.name);
+        }
+        names.sort();
+        const fileListHash = names.join("|");
+
+        if (fileListHash !== _lastFileList) {
+            loadAssets();
+        }
+    } catch {
+        // Assets folder might not exist
+    }
 }
 
 async function loadAssets() {
     if (!_container) return;
     _container.innerHTML = "";
+    _lastFileList = "";
 
     const state = getEditorState();
     if (!state || !state.project || !state.project.directoryHandle) {
@@ -34,6 +95,7 @@ async function loadAssets() {
     }
 
     const files = [];
+    const nameList = [];
     try {
         for await (const entry of assetsHandle.values()) {
             files.push({
@@ -41,11 +103,15 @@ async function loadAssets() {
                 kind: entry.kind,
                 handle: entry
             });
+            nameList.push(entry.kind + ":" + entry.name);
         }
     } catch (err) {
         showMessage("Failed to read Assets folder: " + err.message);
         return;
     }
+
+    nameList.sort();
+    _lastFileList = nameList.join("|");
 
     renderFileList(files);
 }
@@ -170,4 +236,4 @@ function getExtension(filename) {
     return filename.substring(dot).toLowerCase();
 }
 
-export { renderAssetsBrowser };
+export { renderAssetsBrowser, cleanupAssetsBrowser };

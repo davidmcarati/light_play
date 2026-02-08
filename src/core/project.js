@@ -76,10 +76,7 @@ async function createNewProject(name) {
     };
 }
 
-async function loadExistingProject() {
-    const directoryHandle = await pickDirectory();
-    if (!directoryHandle) return null;
-
+async function loadProjectFromHandle(directoryHandle) {
     let projectFile;
     try {
         projectFile = await directoryHandle.getFileHandle(PROJECT_FILE_NAME);
@@ -110,6 +107,12 @@ async function loadExistingProject() {
     };
 }
 
+async function loadExistingProject() {
+    const directoryHandle = await pickDirectory();
+    if (!directoryHandle) return null;
+    return await loadProjectFromHandle(directoryHandle);
+}
+
 async function saveProject(directoryHandle, projectData, sceneData) {
     projectData.lastModified = new Date().toISOString();
 
@@ -137,5 +140,6 @@ export {
     createLObject,
     createNewProject,
     loadExistingProject,
+    loadProjectFromHandle,
     saveProject
 };

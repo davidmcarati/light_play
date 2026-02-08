@@ -7,6 +7,7 @@ import { runPanelSystemTests } from "./test_panel_system.js";
 import { runMenuBarTests } from "./test_menu_bar.js";
 import { runUndoRedoTests } from "./test_undo_redo.js";
 import { runAutoSaveTests } from "./test_auto_save.js";
+import { runRecentProjectsTests } from "./test_recent_projects.js";
 
 async function runAllTests() {
     console.log("═══════════════════════════════");
@@ -21,7 +22,8 @@ async function runAllTests() {
         runPanelSystemTests,
         runMenuBarTests,
         runUndoRedoTests,
-        runAutoSaveTests
+        runAutoSaveTests,
+        runRecentProjectsTests
     ];
 
     const results = [];

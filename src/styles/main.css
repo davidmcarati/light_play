@@ -363,6 +363,7 @@ html, body {
     height: 100%;
     background: var(--bg-panel);
     border: 1px solid var(--border);
+    position: relative;
 }
 
 .panel-tab-bar {
@@ -639,6 +640,142 @@ html, body {
 .notification.warning {
     background: var(--warning);
     color: #1e1e1e;
+}
+
+/* ── Recent Projects ── */
+
+.recent-projects-section {
+    margin-top: 16px;
+}
+
+.recent-projects-title {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.recent-projects-list {
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-primary);
+}
+
+.recent-project-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.recent-project-item:last-child {
+    border-bottom: none;
+}
+
+.recent-project-item:hover {
+    background: rgba(233, 69, 96, 0.1);
+}
+
+.recent-project-name {
+    flex: 1;
+    font-size: 0.92rem;
+    color: var(--text-primary);
+}
+
+.recent-project-time {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-right: 8px;
+}
+
+.recent-project-remove {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.recent-project-remove:hover {
+    color: var(--danger);
+}
+
+/* ── Panel Drop Zones ── */
+
+.panel-drop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    display: none;
+    pointer-events: none;
+}
+
+.panel-drop-overlay.visible {
+    display: block;
+    pointer-events: auto;
+}
+
+.drop-zone {
+    position: absolute;
+    background: transparent;
+    border: 2px dashed transparent;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.drop-zone-center {
+    top: 22%;
+    left: 22%;
+    right: 22%;
+    bottom: 22%;
+    border-radius: 6px;
+}
+
+.drop-zone-left {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 22%;
+}
+
+.drop-zone-right {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 22%;
+}
+
+.drop-zone-top {
+    top: 0;
+    left: 22%;
+    right: 22%;
+    height: 22%;
+}
+
+.drop-zone-bottom {
+    bottom: 0;
+    left: 22%;
+    right: 22%;
+    height: 22%;
+}
+
+.drop-zone.highlight {
+    background: rgba(233, 69, 96, 0.18);
+    border-color: var(--accent);
+}
+
+.panel-tab.dragging {
+    opacity: 0.4;
 }
 
 /* ── Animations ── */
